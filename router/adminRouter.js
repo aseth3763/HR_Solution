@@ -463,6 +463,7 @@ router.post('/adminResetPass/:adminId', Admin_and_staffController.adminResetPass
         // Api for get all clients for admin
 
         router.get('/getAllEmp_admin', authUser, role_check('/getAllEmp_admin'), Admin_and_staffController.getAllEmp_admin)
+        router.delete('/deleteEmp_admin/:id', authUser, Admin_and_staffController.deleteEmp_admin)
         // Api for getService
         router.get('/getService_admin', authUser, role_check('/getService_admin'),   Admin_and_staffController.getService_admin )
         // Api for  getHr_consultancy_Details
