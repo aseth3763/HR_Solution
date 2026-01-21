@@ -1900,6 +1900,7 @@ const getAllFemale_Candidate = async (req, res) => {
         candidateStatus: candidate.candidateStatus,
         saved_status: candidate.saved_status,
         candidate_rating: candidate.candidate_rating,
+        area_of_qualification : candidate.area_of_qualification
       })),
     });
   } catch (error) {

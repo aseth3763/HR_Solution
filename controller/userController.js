@@ -3469,7 +3469,7 @@ const apply_on_job = async (req, res) => {
 let cvText;
 try {
   cvText = await parsePDF(resumePath);
-  console.log("cvtes: ",cvText)
+//   console.log("cvtes: ",cvText)
 } catch (err) {
   return res.status(400).json({
     success: false,
@@ -3477,12 +3477,12 @@ try {
   });
 }
     cvText = improveTextFormatting(cvText);
-    console.log("a:",cvText)
+    // console.log("a:",cvText)
     const matchPercentage = calculateMatchPercentage(cvText, combine_jd, job_Heading);
 let rating = 1;
 const percentage = parseFloat(matchPercentage);
 
-console.log(matchPercentage)
+// console.log(matchPercentage)
 
 if (percentage >= 70) rating = 5;
 else if (percentage >= 50) rating = 4;
@@ -3526,7 +3526,7 @@ else rating = 1;
       });
       await newNotification.save();
     } catch (notificationError) {
-      console.error("Error creating notification:", notificationError);
+    //   console.error("Error creating notification:", notificationError);
     }
 
     await newData.save();
