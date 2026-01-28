@@ -286,7 +286,8 @@ router.post('/clientResetPass/:clientId', userController.clientResetPass)
          router.get("/getAllUploadedJobFiles",userController.getAllUploadedJobFiles)
          router.delete("/deleteJobDescriptionById/:id",userController.deleteJobDescriptionById)
          
-        //  router.post('/convertWordToPdf', userController.convertWordToPdf)
+         //  router.post('/convertWordToPdf', userController.convertWordToPdf)
+         router.get("/jobLink/:jobId",userController.jobLink)
 
 
 module.exports = router

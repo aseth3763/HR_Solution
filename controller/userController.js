@@ -8303,6 +8303,65 @@ console.log("Uploads directory exists:", fs.existsSync(uploadsDir)); // Debuggin
     }
 }; */
 
+
+const jobLink = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    if (!jobId) {
+      return res.status(400).send("Job ID is required");
+    }
+
+    const job = await jobModel.findOne({ jobId });
+
+    if (!job) {
+      return res.status(404).send("Job not found");
+    }
+
+    // PUBLIC SHARE URL (THIS API URL)
+    const shareUrl = `https://api.smartstartsl.com/jobLink/${jobId}`;
+
+    // FINAL DESTINATION (React)
+    const reactUrl = `https://smartstartsl.com/JobDetailpage/${jobId}`;
+
+    res.set("Content-Type", "text/html");
+
+    return res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <title>${job.job_title}</title>
+
+          <!-- REQUIRED Open Graph tags -->
+          <meta property="og:title" content="${job.job_title}" />
+          <meta property="og:description" content="${job.company_name}" />
+          <meta property="og:url" content="${shareUrl}" />
+          <meta property="og:type" content="website" />
+          ${
+            job.image
+              ? `<meta property="og:image" content="${job.image}" />`
+              : ""
+          }
+
+          <!-- Optional but recommended -->
+          <meta name="twitter:card" content="summary_large_image" />
+
+          <!-- Redirect real users -->
+          <meta http-equiv="refresh" content="0; url=${reactUrl}" />
+        </head>
+        <body>
+          Redirecting…
+        </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error("Job Redirect Error:", error);
+    return res.status(500).send("Internal server error");
+  }
+};
+
+
+
 module.exports = {
     employeeSignup, 
     Emp_login, getEmployeeDetails, updateEmp, emp_ChangePassword, postJob, getJobs_posted_by_employee,
@@ -8338,6 +8397,6 @@ module.exports = {
     // Admin API
 
     getAll_Jobs_admin , all_main_jobTitle_main  ,uploadJobFile,updateJobCountById ,getAllUploadedJobFiles ,deleteJobDescriptionById,
-    clientSignup ,getAllClients
+    clientSignup ,getAllClients , jobLink
 } 
 
