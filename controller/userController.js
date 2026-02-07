@@ -430,15 +430,17 @@ const employeeSignup = async (req, res) => {
 
 
         // check for existing employee
-        const existingEmp = await employeeModel.findOne({ email: email })
-        if (existingEmp) {
+const existingEmp = await employeeModel.findOne({ 
+    email: email,
+    status: { $ne: 2 }  // number type
+});        if (existingEmp) {
             return res.status(400).json({
                 success: false,
                 message: 'email already exists'
             })
         }
         // check for company
-        const existCompany = await employeeModel.findOne({ company_name: company_name }) 
+        const existCompany = await employeeModel.findOne({ company_name: company_name , status: { $ne: 2 }}) 
         if (existCompany) {
             return res.status(400).json({
                 success: false,
@@ -1007,12 +1009,12 @@ const Emp_login = async (req, res) => {
             });
         }
         // Find Employee by email
-        const emp = await employeeModel.findOne({ email: email });
+        const emp = await employeeModel.findOne({ email: email , status : {$ne : 2}});
 
         if (!emp) {
             return res.status(400).json({
                 success: false,
-                message: "Email incorrect"
+                message: "Email incorrect or user deleted"
             });
         }
         const status = emp.status
@@ -1022,6 +1024,7 @@ const Emp_login = async (req, res) => {
                 message: 'Your account is Not Active yet. Please contact the admin for further details.'
             })
         }
+        
 
         // check for package
         let package = await clientPackageModel.findOne({ _id: emp.package_id })
@@ -2842,112 +2845,97 @@ const export_candidate = async (req, res) => {
 // Api for get all Jobs
 
 const getAll_Jobs = async (req, res) => {
-    try {
-        // Extract job status filter from query
-        const job_status = req.query.job_status;
-        const filter = {};
+  try {
+    const job_status = req.query.job_status;
+    const filter = {};
 
-        if (job_status) {
-            filter.status = job_status;
-        }
-
-        // Fetch jobs based on filter
-        const allJobs = await jobModel.find({ ...filter }).sort({ createdAt: -1 }); 
-
-        if (allJobs.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'No jobs found',
-            });
-        }
-      
-        // Prepare job title counts and map data
-        const jobTitle_Count = new Map();
-
-        const jobsData = await Promise.all(
-            allJobs.map(async (job) => {
-
-                // Salary pay formatting
-                const salary_pay = `${job.salary_pay[0].Minimum_pay} - ${job.salary_pay[0].Maximum_pay}, ${job.salary_pay[0].Rate}`;
-
-                // Normalize job title for counting
-                const normalized_title = job.job_title.trim().toLowerCase();
-                jobTitle_Count.set(normalized_title, (jobTitle_Count.get(normalized_title) || 0) + 1);
-
-                // Fetch applied candidates for this job
-                const candidateDetails = await appliedjobModel.find({ jobId: job.jobId });
-                const loc_lat_long = await sl_loc_model.findOne({ loc: job.location })
-
-                // Count male and female candidates
-                const maleCandidateCount = candidateDetails.filter((candidate) => candidate.gender === 'Male').length;
-                const femaleCandidateCount = candidateDetails.filter((candidate) => candidate.gender === 'Female').length;
-
-                // Return job data 
-                return {
-                    jobId: job.jobId,
-                    job_title: job.job_title,
-                    //    sub_job_title : job.sub_job_title ,
-                    company_name: job.company_name,
-                    Number_of_emp_needed: job.Number_of_emp_needed,
-                    job_type: job.job_type,
-                    job_schedule: job.job_schedule, 
-                    salary_pay,
-                    job_Description: job.job_Description,
-                    job_Responsibility: job.job_Responsibility || null,
-                    company_address: job.company_address,
-                    employee_email: job.employee_email,
-                    requirement_timeline: job.requirement_timeline,
-                    startDate: job.startDate,
-                    endDate: job.endDate,
-                    phone_no: job.phone_no,
-                    skills: job.skills,
-                    qualification : job.qualification,
-                    acadmic_qualification: job.acadmic_qualification,
-                    Experience: job.Experience,
-                    template_type: job.template_type,
-                    company_Industry: job.company_Industry,
-                    job_photo: job.job_photo,
-                    status: job.status,
-                    empId: job.emp_Id,
-                    isPsychometricTest: job.isPsychometricTest,
-                    psychometric_Test: job.psychometric_Test,
-                    maleCandidateCount,
-                    femaleCandidateCount,
-                    fav_status: job.fav_status,
-                    job_image: job.job_image || '',
-                    location: job.location,
-                    hiring_manager_email: job.hiring_manager_email,
-                    hr_email: job.hr_email,
-                    job_location_latitude: loc_lat_long ? loc_lat_long.lat : null,
-                    job_location_longitude: loc_lat_long ? loc_lat_long.long : null,
-                };
-            })
-        );
-
-        // Convert job title counts to array
-        const job_title_array = Array.from(jobTitle_Count.entries()).map(([title, count]) => ({
-            title,
-            count,
-        }));
-
-        // Return successful response
-        return res.status(200).json({
-            success: true,
-            message: 'All Jobs',
-            JobsCount: allJobs.length,
-            //    job_title_array,
-            allJobs: jobsData,
-        });
-    } catch (error) {
-        // Handle server errors
-        return res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error_message: error.message,
-        });
+    if (job_status) {
+      filter.status = job_status;
     }
-};
 
+    const allJobs = await jobModel.find(filter).sort({ createdAt: -1 });
+
+    if (allJobs.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No jobs found',
+      });
+    }
+
+    const jobsData = await Promise.all(
+      allJobs.map(async (job) => {
+        const salary_pay = `${job.salary_pay[0].Minimum_pay} - ${job.salary_pay[0].Maximum_pay}, ${job.salary_pay[0].Rate}`;
+
+        const candidateDetails = await appliedjobModel.find({ jobId: job.jobId });
+        const loc_lat_long = await sl_loc_model.findOne({ loc: job.location });
+
+        // FETCH EMPLOYEE IMAGE USING emp_Id
+        const employee = await employeeModel
+          .findById(job.emp_Id)
+          .select('profileImage');
+
+        const maleCandidateCount = candidateDetails.filter(c => c.gender === 'Male').length;
+        const femaleCandidateCount = candidateDetails.filter(c => c.gender === 'Female').length;
+
+        return {
+          jobId: job.jobId,
+          job_title: job.job_title,
+          company_name: job.company_name,
+          Number_of_emp_needed: job.Number_of_emp_needed,
+          job_type: job.job_type,
+          job_schedule: job.job_schedule,
+          salary_pay,
+          job_Description: job.job_Description,
+          job_Responsibility: job.job_Responsibility || null,
+          company_address: job.company_address,
+          employee_email: job.employee_email,
+          requirement_timeline: job.requirement_timeline,
+          startDate: job.startDate,
+          endDate: job.endDate,
+          phone_no: job.phone_no,
+          skills: job.skills,
+          qualification: job.qualification,
+          acadmic_qualification: job.acadmic_qualification,
+          Experience: job.Experience,
+          template_type: job.template_type,
+          company_Industry: job.company_Industry,
+          job_photo: job.job_photo,
+          status: job.status,
+          empId: job.emp_Id,
+
+          // ADDED FIELD
+          employee_image: employee ? employee.profileImage : null,
+
+          isPsychometricTest: job.isPsychometricTest,
+          psychometric_Test: job.psychometric_Test,
+          maleCandidateCount,
+          femaleCandidateCount,
+          fav_status: job.fav_status,
+          job_image: job.job_image || '',
+          location: job.location,
+          hiring_manager_email: job.hiring_manager_email,
+          hr_email: job.hr_email,
+          job_location_latitude: loc_lat_long ? loc_lat_long.lat : null,
+          job_location_longitude: loc_lat_long ? loc_lat_long.long : null,
+        };
+      })
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'All Jobs',
+      JobsCount: allJobs.length,
+      allJobs: jobsData,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error_message: error.message,
+    });
+  }
+};
 
 const getAll_Jobs_admin = async (req, res) => {
     try {
@@ -8304,62 +8292,119 @@ console.log("Uploads directory exists:", fs.existsSync(uploadsDir)); // Debuggin
 }; */
 
 
+// const jobLink = async (req, res) => {
+//   try {
+//     const { jobId } = req.params;
+
+//     if (!jobId) {
+//       return res.status(400).send("Job ID is required");
+//     }
+
+//     const job = await jobModel.findOne({ jobId });
+
+//     if (!job) {
+//       return res.status(404).send("Job not found");
+//     }
+
+//     // PUBLIC SHARE URL (THIS API URL)
+//     const shareUrl = `https://api.smartstartsl.com/jobLink/${jobId}`;
+
+//     // FINAL DESTINATION (React)
+//     const reactUrl = `https://smartstartsl.com/JobDetailpage/${jobId}`;
+
+//     res.set("Content-Type", "text/html");
+
+//     return res.send(`
+//       <!DOCTYPE html>
+//       <html lang="en">
+//         <head>
+//           <title>${job.job_title}</title>
+
+//           <!-- REQUIRED Open Graph tags -->
+//           <meta property="og:title" content="${job.job_title}" />
+//           <meta property="og:description" content="${job.company_name}" />
+//           <meta property="og:url" content="${shareUrl}" />
+//           <meta property="og:type" content="website" />
+//           ${
+//             job.image
+//               ? `<meta property="og:image" content="${job.image}" />`
+//               : ""
+//           }
+
+//           <!-- Optional but recommended -->
+//           <meta name="twitter:card" content="summary_large_image" />
+
+//           <!-- Redirect real users -->
+//           <meta http-equiv="refresh" content="0; url=${reactUrl}" />
+//         </head>
+//         <body>
+//           Redirecting…
+//         </body>
+//       </html>
+//     `);
+//   } catch (error) {
+//     console.error("Job Redirect Error:", error);
+//     return res.status(500).send("Internal server error");
+//   }
+// };
+//
+
+const escapeHtml = (text = "") =>
+  text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+ 
 const jobLink = async (req, res) => {
   try {
     const { jobId } = req.params;
-
-    if (!jobId) {
-      return res.status(400).send("Job ID is required");
-    }
-
+ 
     const job = await jobModel.findOne({ jobId });
-
-    if (!job) {
-      return res.status(404).send("Job not found");
-    }
-
-    // PUBLIC SHARE URL (THIS API URL)
-    const shareUrl = `https://api.smartstartsl.com/jobLink/${jobId}`;
-
-    // FINAL DESTINATION (React)
+    if (!job) return res.status(404).send("Job not found");
+ 
+    const shareUrl = `https://sisccltd.com/hrsolutions/api/jobLink/${jobId}`;
     const reactUrl = `https://smartstartsl.com/JobDetailpage/${jobId}`;
-
+ 
     res.set("Content-Type", "text/html");
-
+ 
     return res.send(`
-      <!DOCTYPE html>
-      <html lang="en">
-        <head>
-          <title>${job.job_title}</title>
-
-          <!-- REQUIRED Open Graph tags -->
-          <meta property="og:title" content="${job.job_title}" />
-          <meta property="og:description" content="${job.company_name}" />
-          <meta property="og:url" content="${shareUrl}" />
-          <meta property="og:type" content="website" />
-          ${
-            job.image
-              ? `<meta property="og:image" content="${job.image}" />`
-              : ""
-          }
-
-          <!-- Optional but recommended -->
-          <meta name="twitter:card" content="summary_large_image" />
-
-          <!-- Redirect real users -->
-          <meta http-equiv="refresh" content="0; url=${reactUrl}" />
-        </head>
-        <body>
-          Redirecting…
-        </body>
-      </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>${escapeHtml(job.job_title)}</title>
+ 
+  <!-- Open Graph -->
+<meta property="og:title" content="${escapeHtml(job.job_title)}" />
+<meta property="og:description" content="Apply for ${escapeHtml(
+    job.job_title
+  )} at ${escapeHtml(job.company_name)}" />
+<meta property="og:url" content="${shareUrl}" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Smart Start SL" />
+  ${
+    job.image
+      ? `<meta property="og:image" content="${job.image}" />`
+      : ""
+  }
+ 
+  <!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+ 
+  <!-- REAL redirect (works for browsers, bots ignore delay) -->
+<meta http-equiv="refresh" content="0; url=${reactUrl}" />
+</head>
+<body>
+  Redirecting…
+</body>
+</html>
     `);
   } catch (error) {
-    console.error("Job Redirect Error:", error);
-    return res.status(500).send("Internal server error");
+    console.error("JobLink Error:", error);
+    return res.status(500).send("Server error");
   }
 };
-
 
 
 module.exports = {
